@@ -1,0 +1,600 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Interactive Timeline</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: #f3f4f6;
+                color: #1f2937;
+            }
+
+            .timeline-container {
+                position: relative;
+                padding: 2rem 1rem;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .timeline-line {
+                position: absolute;
+                width: 4px;
+                background-color: #d1d5db;
+                top: 2rem;
+                bottom: 2rem;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .timeline-item {
+                display: flex;
+                justify-content: flex-end;
+                position: relative;
+                width: 50%;
+                margin-bottom: 2rem;
+                padding-right: 2rem;
+                cursor: pointer;
+                transition: transform 0.3s ease-in-out;
+            }
+
+            .timeline-item.left {
+                align-self: flex-start;
+            }
+
+            .timeline-item.right {
+                align-self: flex-end;
+                justify-content: flex-start;
+                padding-left: 2rem;
+                padding-right: 0;
+            }
+
+            .timeline-item.right .timeline-content {
+                border-radius: 0.75rem 0 0.75rem 0.75rem;
+            }
+
+            .timeline-item.left .timeline-content {
+                border-radius: 0 0.75rem 0.75rem 0.75rem;
+            }
+
+            .timeline-item:hover {
+                transform: translateY(-5px);
+            }
+
+            .timeline-icon {
+                position: absolute;
+                top: 1.5rem;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background-color: #9ca3af;
+                z-index: 10;
+            }
+
+            .timeline-item.left .timeline-icon {
+                right: -12px;
+            }
+
+            .timeline-item.right .timeline-icon {
+                left: -12px;
+            }
+            
+            @media (max-width: 768px) {
+                .timeline-line {
+                    left: 20px;
+                }
+
+                .timeline-item {
+                    width: 100%;
+                    justify-content: flex-start;
+                    padding-left: 3rem;
+                    padding-right: 0;
+                }
+
+                .timeline-item.left,
+                .timeline-item.right {
+                    padding-left: 3rem;
+                    padding-right: 0;
+                }
+
+                .timeline-item .timeline-icon {
+                    left: 10px;
+                    right: auto;
+                    transform: translateX(-50%);
+                }
+
+                .timeline-item.left .timeline-content {
+                    border-radius: 0.75rem;
+                }
+
+                .timeline-item.right .timeline-content {
+                    border-radius: 0.75rem;
+                }
+            }
+
+            /* Modal styling */
+            .modal {
+                position: fixed;
+                z-index: 50;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .modal-content {
+                background-color: #ffffff;
+                padding: 2rem;
+                border-radius: 1rem;
+                width: 90%;
+                max-width: 600px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+                position: relative;
+            }
+
+            .close-button {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                font-size: 2rem;
+                font-weight: bold;
+                color: #1f2937;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body class="bg-gray-100 text-gray-800">
+        <div class="p-6">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-center text-indigo-800 mb-4">Línea de Tiempo Interactiva</h1>
+            <p class="text-center text-lg md:text-xl text-gray-600 mb-4">Informática Educativa en Uruguay: Historia y Evolución</p>
+            <div class="text-center mb-8">
+                <p class="text-sm text-gray-500 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 inline-block">
+                    💡 <strong>Tip:</strong> Haz clic en cualquier elemento de la línea de tiempo para ver información detallada
+                </p>
+            </div>
+        </div>
+
+        <div class="timeline-container relative flex flex-col items-center">
+            <div class="timeline-line"></div>
+
+            <!-- Timeline Items will be dynamically generated here by JavaScript -->
+        </div>
+
+        <!-- Modal for showing event details -->
+        <div id="modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeModal()">&times;</span>
+                <h2 id="modal-title" class="text-2xl font-bold mb-2"></h2>
+                <h3 id="modal-subtitle" class="text-lg text-gray-600 mb-4"></h3>
+                <p id="modal-description" class="text-base text-gray-700 leading-relaxed"></p>
+                <div id="modal-analysis" class="mt-4 p-4 bg-gray-100 rounded-lg hidden">
+                    <h4 class="text-lg font-bold mb-2 text-indigo-700">Analysis</h4>
+                    <p id="modal-analysis-text" class="text-sm text-gray-700 leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const timelineData = [
+                {
+                    year: '1950s',
+                    title: 'Comienzos de la computación en Uruguay',
+                    subtitle: 'Irrupción de máquinas y primeros profesionales',
+                    description: 'El uso de máquinas sumadoras, perfo-verificadoras y Teletipos forzó a Uruguay a incursionar en la informática. Las compañías vendedoras de estos equipos ofrecieron las primeras capacitaciones a usuarios específicos. Surgieron los primeros "científicos" e "ingenieros" en informática, que exploraron el uso de estos elementos, y los primeros "programadores" uruguayos, que usaron la electrónica para resolver problemas y crear juegos.',
+                    type: 'Orígenes de la informática'
+                },
+                {
+                    year: '1961 (7 de diciembre)',
+                    title: 'Creación del CONICYT',
+                    subtitle: 'Un impulso a la investigación científica y técnica',
+                    description: 'Se creó el Consejo Nacional de Investigaciones Científicas y Técnicas (C.O.N.I.C.Y.T.) mediante la Ley 13032 (<a href="https://www.impo.com.uy/bases/leyes/13032-1961/240" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">Art. 240</a> y <a href="https://www.impo.com.uy/bases/leyes/13032-1961/241" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">Art. 241</a>). Su objetivo era promover y estimular el desarrollo de investigaciones en todos los campos del conocimiento.',
+                    type: 'Políticas de ciencia y tecnología'
+                },
+                {
+                    year: '1970 (Agosto)',
+                    title: 'Intervención de la enseñanza',
+                    subtitle: 'Represión en el sistema educativo',
+                    description: 'El Presidente Jorge Pacheco Areco intervino la enseñanza primaria y secundaria. Se reemplazaron autoridades con una comisión interventora represiva y se clausuraron los cursos por cuatro meses. Docentes impartieron clases en calles y plazas como forma de protesta.',
+                    type: 'Contexto socio-político'
+                },
+                {
+                    year: '1972',
+                    title: 'Cambio en la dependencia de la educación',
+                    subtitle: 'Separación del Ministerio de Instrucción Pública',
+                    description: 'La Enseñanza Pública dejó de depender del Ministerio de Instrucción Pública y Previsión Social, que existía desde 1877.',
+                    type: 'Reformas educativas'
+                },
+                {
+                    year: '1973 (4 de enero)',
+                    title: 'Ley del Consejo Nacional de Educación (CONAE)',
+                    subtitle: 'Unificación del sistema educativo',
+                    description: 'Se firmó la <a href="https://www.impo.com.uy/bases/leyes-originales/14101-1973" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">Ley 14.101</a>, impulsada por el Ministro José María Sanguinetti. Esta ley unificó el sistema educativo bajo la égida del CONAE.',
+                    type: 'Legislación educativa'
+                },
+                {
+                    year: '1973 (Febrero)',
+                    title: 'Crisis política y Comunicados militares',
+                    subtitle: 'Desconocimiento del poder civil',
+                    description: 'El Presidente Juan María Bordaberry nombró al Gral. Antonio Francese como Ministro de Defensa Nacional. El Ejército y la Fuerza Aérea emitieron los Comunicados 4 y 7, desconociendo su autoridad y expresando su intención de participar en la "reorganización moral y material del país".',
+                    type: 'Contexto socio-político'
+                },
+                {
+                    year: '1973 (Febrero)',
+                    title: 'Acuerdo de Boiso Lanza',
+                    subtitle: 'Pacto entre gobierno y militares',
+                    description: 'Se firmó un acuerdo entre Bordaberry y los militares que resultó en la creación del Consejo de Seguridad Nacional (COSENA).',
+                    type: 'Contexto socio-político'
+                },
+                {
+                    year: '1973 (27 de junio)',
+                    title: 'Inicio de la dictadura',
+                    subtitle: 'Disolución de las Cámaras Parlamentarias',
+                    description: 'Se disolvieron las Cámaras Parlamentarias y se creó el Consejo de Estado, marcando el inicio de la dictadura cívico-militar en Uruguay.',
+                    type: 'Contexto socio-político'
+                },
+                {
+                    year: '1973-1985',
+                    title: 'Dictadura y retroceso informático',
+                    subtitle: 'El impacto en la educación y la ciencia',
+                    description: 'La <a href="https://www.impo.com.uy/bases/leyes-originales/14101-1973" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">Ley 14.101</a> rigió la educación durante la dictadura. Uruguay se distanció de los avances en ciencia computacional y retrasó su ingreso a la informática educativa. Muchos ingenieros informáticos se formaron en el extranjero.',
+                    type: 'Educación y tecnología'
+                },
+                {
+                    year: '1975 (9 de diciembre)',
+                    title: 'Declaración de Derechos de Impedidos',
+                    subtitle: 'Primeros pasos en inclusión',
+                    description: 'Se promulgó la Declaración de Derechos de Impedidos.',
+                    type: 'Legislación social'
+                },
+                {
+                    year: '1985',
+                    title: 'Retorno a la Democracia',
+                    subtitle: 'Regreso de profesionales e impulso a la informática',
+                    description: 'Con el retorno a la democracia, muchos profesionales y técnicos formados en el extranjero regresaron al país. Se creó la carrera de Ingeniero Tecnológico bajo la ANEP, con el objetivo de integrar la informática en la educación.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1985 (28 de marzo)',
+                    title: 'Sustitución de la Ley de Educación',
+                    subtitle: 'Cambio de la Ley 14.101 por la Ley 15.739',
+                    description: 'La <a href="https://udelar.edu.uy/portal/wp-content/uploads/sites/48/2021/06/ley-15739.pdf" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">Ley 15.739</a> sustituyó a la <a href="https://www.impo.com.uy/bases/leyes-originales/14101-1973" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">Ley 14.101</a>, que había regido la educación durante la dictadura.',
+                    type: 'Legislación educativa'
+                },
+                {
+                    year: '1985 (30 de julio)',
+                    title: 'Reglamentación de la nueva Ley',
+                    subtitle: 'Principios de libertad y laicidad',
+                    description: 'El Decreto 395/985 reglamentó la <a href="https://udelar.edu.uy/portal/wp-content/uploads/sites/48/2021/06/ley-15739.pdf" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">Ley 15.739</a>, reafirmando principios como la libertad de acceso a la cultura y la laicidad en la educación.',
+                    type: 'Legislación educativa'
+                },
+                {
+                    year: '1985',
+                    title: 'Grupo de trabajo en informática educativa',
+                    subtitle: 'Un esfuerzo por integrar la tecnología en la educación',
+                    description: 'La Comisión Coordinadora de la Educación del MEC organizó un grupo de trabajo para estudiar la aplicación de la informática en la educación, creando una subcomisión de Informática y Educación.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: 'Finales de 1985',
+                    title: 'Primer llamado a docentes de informática',
+                    subtitle: 'Surgimiento del grupo pionero',
+                    description: 'El MEC realizó un llamado abierto a docentes de informática para la enseñanza pública, dando origen a un grupo pionero de 60 educadores. Corea donó equipos MSX DOS al MEC.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1986',
+                    title: 'Comienzo de la formación de educadores',
+                    subtitle: 'Cursos de "Educador en Informática"',
+                    description: 'El Instituto Magisterial Superior (IMS) comenzó a ofrecer cursos anuales de "Educador en Informática" para docentes.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1986',
+                    title: 'Programa INFOMEC/86',
+                    subtitle: 'Expansión de la informática a nivel local',
+                    description: 'El Ministerio de Educación y Cultura organizó INFOMEC/86, un programa de informática con docentes de carreras no formales. Se instalaron salas de informática en Intendencias y juntas municipales, excepto en Rocha, Lavalleja y Treinta y Tres.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1987-1989',
+                    title: 'Labor del grupo pionero de docentes',
+                    subtitle: 'Investigación y proyectos piloto',
+                    description: 'El grupo de docentes del MEC realizó una amplia labor en Informática y Educación en todo el país, desarrollando proyectos piloto e investigación en la materia.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1989',
+                    title: 'Creación de Centros de Informática Educativa',
+                    subtitle: 'Expansión de la infraestructura',
+                    description: 'Se instalaron Centros Experimentales de Informática Educativa en el interior y Montevideo.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1989 (26 de octubre)',
+                    title: 'Ley de protección a personas con discapacidad',
+                    subtitle: 'Acceso a la tecnología para todos',
+                    description: 'La <a href="https://www.impo.com.uy/bases/leyes-originales/16095-1989" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">Ley 16.095</a> enmarcó la protección legal de personas con capacidades diferentes, facilitando su acceso a computadoras.',
+                    type: 'Legislación social'
+                },
+                {
+                    year: 'A partir de 1989',
+                    title: 'Reorganización de los docentes de informática',
+                    subtitle: 'Paso de MEC a subsistemas',
+                    description: 'Los integrantes del grupo pionero de docentes se reintegraron a sus respectivas organizaciones (CEP, CES, CETP), dejando de depender del MEC. Al mismo tiempo, se desarrolló el "Plan Flor de Ceibo" y se iniciaron cursos de informática en el ámbito privado y la UTU.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1991',
+                    title: 'Reorganización de docentes y creación del INFED 2000',
+                    subtitle: 'Un nuevo proyecto para la informática educativa',
+                    description: 'Docentes de CES y CEP se reorganizaron con el objetivo de crear el Proyecto INFED 2000.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1992',
+                    title: 'Creación del Proyecto INFED 2000',
+                    subtitle: 'Se oficializa el programa',
+                    description: 'El Proyecto INFED 2000 se creó oficialmente con una aplicación prevista hasta 1995. Se hizo un llamado a docentes valorando tanto los aspectos pedagógicos como la formación en informática.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1992-2000',
+                    title: 'Coexistencia de programas educativos',
+                    subtitle: 'Múltiples enfoques en la informática educativa',
+                    description: 'Durante este período, coexistieron tres programas en el sistema educativo: el Plan ´85, la Micro Experiencia (´92) y el Plan Rama (95-2000).',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1992 (Desde)',
+                    title: 'Implementación del plan Micro-experiencia',
+                    subtitle: 'Creación de centros de informática educativa',
+                    description: 'Bajo la dirección de Washington Martínez, se implementó el plan Micro-experiencia. Esto llevó a la creación del Centro Nacional de Informática Educativa (CeNaINFED) y 8 Centros Regionales de Informática Educativa (CRIE) en el interior, además de CIE y CEAMI.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1995',
+                    title: 'Suspensión de INFED 2000',
+                    subtitle: 'Unificación curricular',
+                    description: 'Las nuevas autoridades educativas suspendieron el programa INFED 2000 y optaron por la unificación curricular, apoyándose en experiencias previas.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1995-1999',
+                    title: 'Reforma educativa',
+                    subtitle: 'Modernización de la enseñanza',
+                    description: 'Uruguay impulsó una reforma educativa con cuatro objetivos: mejora de la calidad, equidad, dignificación docente y modernización de la gestión. La informática y el inglés se establecieron como prioridades.',
+                    type: 'Reformas educativas'
+                },
+                {
+                    year: '1996',
+                    title: 'Integración a una red nacional',
+                    subtitle: 'Primeros pasos hacia la conectividad masiva',
+                    description: 'Se desconectó el servidor de INFED 2000 para integrar una red nacional a través de ANTEL, lo que se considera un precursor del Plan Cardales y Plan Ceibal.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1996',
+                    title: 'Plan Piloto ´96',
+                    subtitle: 'Acercamiento a la tecnología',
+                    description: 'El Plan Piloto ´96 buscó reducir la brecha entre aulas, profesores, alumnos y redes. Las salas de Informática Educativa pasaron a depender directamente de cada subsistema, descentralizando los centros.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1996',
+                    title: 'Ley Presupuestal y formación docente',
+                    subtitle: 'Inversión en infraestructura y capacitación',
+                    description: 'La Ley Presupuestal de 1996-2000 previó una gran inversión en nuevos locales educativos con salas informáticas, acompañada de la formación de profesores en IFD y CERPs.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '1996 (Plan 1996)',
+                    title: 'Informática como asignatura',
+                    subtitle: 'Formalización de la enseñanza de la tecnología',
+                    description: 'La informática se integró como asignatura en Educación Media y en el currículum de los CERP.',
+                    type: 'Currículum educativo'
+                },
+                {
+                    year: '1998',
+                    title: 'Proyecto R.E.D Internet y Uruguay-Niño',
+                    subtitle: 'Conectividad y libros electrónicos en primaria',
+                    description: 'El Consejo de Educación Primaria (CEP) aprobó y desarrolló el Proyecto R.E.D Internet (Red de Enlace Didáctico con apoyo en Internet) y Uruguay-Niño (Libro electrónico).',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '2000',
+                    title: 'Creación del Comité Nacional para la Sociedad de la Información (CNSI)',
+                    subtitle: 'Estrategia nacional para la Sociedad de la Información',
+                    description: 'Se creó el CNSI para impulsar una estrategia nacional para el desarrollo de la Sociedad de la Información. Uruguay en Red gestionó el programa hasta 2003.',
+                    type: 'Políticas de tecnología'
+                },
+                {
+                    year: '2001 (3 de abril)',
+                    title: 'Creación del Programa de Conectividad Educativa (PCE)',
+                    subtitle: 'Conectividad, capacitación y contenidos',
+                    description: 'El PCE se creó en el marco de un convenio entre Presidencia de la República, ANTEL y ANEP. Buscaba la conexión de centros educativos, capacitación docente y desarrollo de contenidos.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '2001-2002',
+                    title: 'Crisis económica',
+                    subtitle: 'Impacto en las inversiones en educación',
+                    description: 'La crisis económica en Uruguay estancó o dilató las inversiones gubernamentales en educación.',
+                    type: 'Contexto socio-político'
+                },
+                {
+                    year: '2002',
+                    title: 'Llamado a "Formadores de Formadores" en TIC',
+                    subtitle: 'Preparación para la capacitación docente',
+                    description: 'Como continuación del Plan ´96, se hizo un llamado nacional a docentes para ser "Formadores de Formadores" en TIC. Estos docentes capacitarían a otros en 2003.',
+                    type: 'Capacitación docente'
+                },
+                {
+                    year: '2002',
+                    title: 'Cursos para docentes de Educación Media',
+                    subtitle: 'Formación en informática y didáctica',
+                    description: 'La Inspección de informática del CES organizó cursos sobre informática y didáctica de la informática para docentes de Educación Media.',
+                    type: 'Capacitación docente'
+                },
+                {
+                    year: '2003',
+                    title: 'Proyecto ITEEA',
+                    subtitle: 'Integración tecnológica en escuelas de Tiempo Completo',
+                    description: 'Se implementó el Proyecto ITEEA (Integración Tecnológica al Entorno de Enseñanza y Aprendizaje) para escuelas de Tiempo Completo, con capacitación a maestros y el llamado a Maestros Mentores.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '2004',
+                    title: 'Expansión del Proyecto ITEEA',
+                    subtitle: 'Alcance a nivel departamental',
+                    description: 'El Proyecto ITEEA se aplicó en una escuela por departamento y cuatro en Montevideo.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '2003-2006',
+                    title: 'Limitado consumo de TIC',
+                    subtitle: 'Austeridad y falta de políticas públicas',
+                    description: 'Durante este período, el consumo de TIC fue limitado debido a la política de austeridad y la ausencia de políticas públicas.',
+                    type: 'Contexto socio-político'
+                },
+                {
+                    year: 'A partir de 2005',
+                    title: 'Inicios del Plan Ceibal',
+                    subtitle: 'Políticas e iniciativas previas al gran proyecto',
+                    description: 'Se comenzaron a implementar políticas e iniciativas que desembocarían en el Plan Ceibal. También se crearon la AGESIC y la ANII.',
+                    type: 'Políticas de tecnología'
+                },
+                {
+                    year: '2007 (mediados)',
+                    title: 'Inicio de la experiencia piloto del Plan Ceibal',
+                    subtitle: 'El gran salto de la informática educativa',
+                    description: 'El Plan Ceibal comenzó a ejecutarse con una experiencia piloto en la escuela de Cardal, Florida.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '2008 (Desde)',
+                    title: 'Formalización del Profesorado de Informática',
+                    subtitle: 'Reinicio de la formación docente',
+                    description: 'Se reinició la formación de docentes, formalizando el Profesorado de Informática en el Instituto Normal de Enseñanza Técnica (INET), dependiente de ANEP y del CFD.',
+                    type: 'Formación educativa'
+                },
+                {
+                    year: '2008-2009 (principios)',
+                    title: 'Implementación del Plan Ceibal en el interior',
+                    subtitle: 'Llegada de la tecnología a todo el país',
+                    description: 'Se completó la implementación del Plan Ceibal en el interior del país.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '2010',
+                    title: 'Finalización del Plan Ceibal',
+                    subtitle: 'Cobertura total en Uruguay',
+                    description: 'El Plan Ceibal se completó en Montevideo y su Área Metropolitana.',
+                    type: 'Proyectos y programas'
+                },
+                {
+                    year: '2011 (finales)',
+                    title: 'Primera generación de profesores de informática',
+                    subtitle: 'Primeros egresados del INET',
+                    description: 'Se estima la salida de los primeros profesores de Informática titulados y de nivel terciario universitario del INET.',
+                    type: 'Formación educativa'
+                }
+            ];
+
+            const timelineContainer = document.querySelector('.timeline-container');
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalSubtitle = document.getElementById('modal-subtitle');
+            const modalDescription = document.getElementById('modal-description');
+            const modalAnalysis = document.getElementById('modal-analysis');
+            const modalAnalysisText = document.getElementById('modal-analysis-text');
+
+            let isLeft = true;
+
+            timelineData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `timeline-item ${isLeft ? 'left' : 'right'}`;
+                div.innerHTML = `
+                    <div class="timeline-icon bg-indigo-500 rounded-full flex items-center justify-center shadow-lg"></div>
+                    <div class="timeline-content bg-white p-4 shadow-md rounded-lg flex flex-col items-start w-full">
+                        <span class="text-sm font-semibold text-gray-500 mb-1">${item.year}</span>
+                        <h3 class="text-xl font-bold text-indigo-800 mb-1">${item.title}</h3>
+                        <p class="text-base text-gray-600 mb-2">${item.subtitle}</p>
+                        <span class="text-xs font-medium text-indigo-500 bg-indigo-100 px-2 py-1 rounded-full">${item.type}</span>
+                    </div>
+                `;
+                div.addEventListener('click', () => showDetails(item));
+                timelineContainer.appendChild(div);
+                isLeft = !isLeft;
+            });
+
+            function showDetails(item) {
+                modalTitle.textContent = item.title;
+                modalSubtitle.textContent = item.year;
+                modalDescription.innerHTML = item.description;
+
+                if (item.analysis) {
+                    modalAnalysisText.textContent = item.analysis;
+                    modalAnalysis.classList.remove('hidden');
+                } else {
+                    modalAnalysis.classList.add('hidden');
+                }
+
+                modal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+            }
+
+            window.onclick = function(event) {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            }
+        </script>
+
+        <!-- Análisis crítico section -->
+        <div class="bg-white mt-16 py-12 px-6">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold text-center text-indigo-800 mb-8">Análisis crítico de la evolución de la informática educativa en Uruguay</h2>
+                
+                            <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed space-y-6">
+                    <p>
+                        El <strong>Análisis crítico de la evolución de la informática educativa en Uruguay</strong> es un relato de <strong>continuidades y rupturas</strong> que se entrelazan con el <strong>contexto socio-político</strong> del país.
+                    </p>
+                    
+                    <p>
+                        Una <strong>ruptura</strong> clara ocurre durante la dictadura cívico-militar (1973-1985). La intervención de la enseñanza y la emigración forzada de profesionales frenaron el desarrollo tecnológico en el área. La falta de políticas públicas en este período generó un estancamiento que retrasó al país.
+                    </p>
+                    
+                    <p>
+                        El <strong>retorno a la democracia en 1985</strong> marca una <strong>ruptura</strong> política, pero una <strong>continuidad</strong> en el impulso por integrar la tecnología. El regreso de los profesionales exiliados fue clave para retomar el camino. La creación de la carrera de Ingeniero Tecnológico y los primeros grupos de trabajo en el MEC demuestran un esfuerzo por integrar la tecnología en el sistema educativo, un proyecto que había quedado en pausa.
+                    </p>
+                    
+                    <p>
+                        La <strong>reforma educativa de los años 90</strong> es una <strong>continuidad</strong> y una <strong>ruptura</strong> a la vez. Por un lado, mantiene la intención de modernizar la enseñanza, pero por otro, eleva la informática a un objetivo nacional, superando la fase de proyectos piloto. Sin embargo, la crisis económica de 2002 supuso una nueva <strong>ruptura</strong> en el financiamiento, volviendo a dilatar las inversiones.
+                    </p>
+                    
+                    <p>
+                        Finalmente, el <strong>Plan Ceibal</strong> representa la mayor <strong>ruptura</strong> de todas. A diferencia de los programas anteriores que se enfocaban en equipar laboratorios, el Ceibal optó por una visión de acceso universal e individual. Esta decisión, apoyada por la creación de entidades como <strong>AGESIC</strong> y <strong>ANII</strong>, marcó una <strong>continuidad</strong> en el compromiso del Estado con la tecnología, pero en una escala sin precedentes que transformó la educación uruguaya.
+                    </p>
+                                 </div>
+             </div>
+         </div>
+
+         <!-- Botón volver al principio -->
+         <div class="text-center py-8">
+             <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-300 shadow-lg">
+                 ↑ Volver al principio
+             </button>
+         </div>
+     </body>
+     </html>
